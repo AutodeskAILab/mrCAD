@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 def get_strokes_from_record(record):
     return tuple(
-        tuple((point["x"] - 20.0, point["y"] - 20.0) for point in spline)
+        tuple((point["x"] * 1280 / 400, point["y"] * 1280 / 400) for point in spline)
         for spline in record
     )
 

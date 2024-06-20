@@ -13,10 +13,12 @@ class Line:
     def to_json(self):
         return {"type": "line", "control_points": self.control_points}
 
-    def to_image(self, image: np.ndarray, color: Tuple, render_config: ru.RenderConfig):
+    def to_image(self, image: np.ndarray, render_config: ru.RenderConfig):
         (x1, y1), (x2, y2) = self.control_points
-        x1, y1 = ru.transform(x1, y1, render_config.grid_size, render_config.image_size)
-        x2, y2 = ru.transform(x2, y2, render_config.grid_size, render_config.image_size)
+        x1, y1 = render_config.transform(x1, y1)
+        x2, y2 = render_config.transform(x2, y2)
+
+        color = render_config.get_design_color()
 
         return cv2.line(image, (x1, y1), (x2, y2), color, render_config.line_thickness)
 
@@ -28,18 +30,12 @@ class Arc:
     def to_json(self):
         return {"type": "arc", "control_points": self.control_points}
 
-    def to_image(self, image: np.ndarray, color: Tuple, render_config: ru.RenderConfig):
+    def to_image(self, image: np.ndarray, render_config: ru.RenderConfig):
         # get and transform the 3 points
         pt_start, pt_mid, pt_end = self.control_points
-        pt_start = ru.transform(
-            pt_start[0], pt_start[1], render_config.grid_size, render_config.image_size
-        )
-        pt_mid = ru.transform(
-            pt_mid[0], pt_mid[1], render_config.grid_size, render_config.image_size
-        )
-        pt_end = ru.transform(
-            pt_end[0], pt_end[1], render_config.grid_size, render_config.image_size
-        )
+        pt_start = render_config.transform(pt_start[0], pt_start[1])
+        pt_mid = render_config.transform(pt_mid[0], pt_mid[1])
+        pt_end = render_config.transform(pt_end[0], pt_end[1])
         # check if they are colinear, if they are, raise error
         term1 = (pt_end[1] - pt_start[1]) * (pt_mid[0] - pt_start[0])
         term2 = (pt_mid[1] - pt_start[1]) * (pt_end[0] - pt_start[0])
@@ -86,6 +82,8 @@ class Arc:
         center = (int(center[0]), int(center[1]))
         radius = int(radius)
 
+        color = render_config.get_design_color()
+
         image = cv2.ellipse(
             image,
             center,
@@ -107,18 +105,17 @@ class Circle:
     def to_json(self):
         return {"type": "circle", "control_points": self.control_points}
 
-    def to_image(self, image: np.ndarray, color: Tuple, render_config: ru.RenderConfig):
+    def to_image(self, image: np.ndarray, render_config: ru.RenderConfig):
         pt1, pt2 = self.control_points
-        pt1 = ru.transform(
-            pt1[0], pt1[1], render_config.grid_size, render_config.image_size
-        )
-        pt2 = ru.transform(
-            pt2[0], pt2[1], render_config.grid_size, render_config.image_size
-        )
+        pt1 = render_config.transform(pt1[0], pt1[1])
+        pt2 = render_config.transform(pt2[0], pt2[1])
         # the center is between pt1 and pt2
         center = ((pt1[0] + pt2[0]) // 2, (pt1[1] + pt2[1]) // 2)
         # the radius is the distance between pt1 and pt2 divided by 2
         radius = int(np.sqrt((pt1[0] - pt2[0]) ** 2 + (pt1[1] - pt2[1]) ** 2) / 2)
+
+        color = render_config.get_design_color()
+
         return cv2.circle(image, center, radius, color, render_config.line_thickness)
 
 
@@ -128,7 +125,6 @@ class Design:
 
     def to_image(
         self,
-        use_color: bool = False,
         render_config: ru.RenderConfig = None,
         flatten: bool = False,
         ignore_out_of_bounds: bool = False,
@@ -142,23 +138,15 @@ class Design:
         # create a blank RBG image
         img = np.ones(
             (
-                render_config.image_size + 2 * border_size,
-                render_config.image_size + 2 * border_size,
+                render_config.image_size,
+                render_config.image_size,
                 3,
             )
-        )
+        ) * np.array(render_config.get_background_color())
 
         for curve in self.curves:
-            # use a random color
-            if use_color:
-                # color is from 0 to 1
-                color = ru.get_color()
-            else:
-                color = (0, 0, 0)
-
             img = curve.to_image(
                 img,
-                color,
                 render_config,
             )
 
