@@ -2,13 +2,17 @@ import pandas as pd
 from agents.replay_agents import ReplayDesigner, ReplayMaker
 from mrcad.design import Design, Line, Arc, Circle
 from mrcad.coordinator import SynchronousCoordinator
-from mrcad.render_utils import OutOfBoundsError, Collinear
+from mrcad.render_utils import OutOfBoundsError, Collinear, RenderConfig
+from mrcad.visualize import trajectories_to_html
 import matplotlib.pyplot as plt
 
 
-def get_strokes_from_record(record):
+def get_strokes_from_record(record, image_size=1280):
     return tuple(
-        tuple((point["x"] * 1280 / 400, point["y"] * 1280 / 400) for point in spline)
+        tuple(
+            (point["x"] * image_size / 400, point["y"] * image_size / 400)
+            for point in spline
+        )
         for spline in record
     )
 
@@ -39,7 +43,7 @@ def get_design_from_record(record):
     return Design(curves_list)
 
 
-def main(instructions_df_file, executions_df_file):
+def main(instructions_df_file, executions_df_file, html_save_path, image_size=320):
     instructions_df = pd.read_csv(instructions_df_file)
     executions_df = pd.read_csv(executions_df_file)
 
@@ -47,6 +51,7 @@ def main(instructions_df_file, executions_df_file):
         executions_df.targetId
     ), "Instructions and executions must be for the same targets"
 
+    trajectories = []
     for target_id in instructions_df.targetId.unique():
         print(f"Testing target {target_id}")
 
@@ -62,7 +67,7 @@ def main(instructions_df_file, executions_df_file):
         ]
         designer = ReplayDesigner(
             [
-                (row.text, get_strokes_from_record(eval(row.strokes)))
+                (row.text, get_strokes_from_record(eval(row.strokes), image_size))
                 for _, row in instructions.iterrows()
             ]
         )
@@ -79,11 +84,8 @@ def main(instructions_df_file, executions_df_file):
         coordinator = SynchronousCoordinator(target, designer, maker)
         try:
             trajectory = coordinator.play()
+            trajectories.extend(trajectory)
         except OutOfBoundsError:
-            plt.imsave(
-                f"out_of_bounds_{target_id}.png",
-                target.to_image(ignore_out_of_bounds=True),
-            )
             print(f"Ran into out of bounds error for target {target_id}")
             continue
         except Collinear:
@@ -91,6 +93,12 @@ def main(instructions_df_file, executions_df_file):
             continue
 
         print(f"Successfully played target {target_id}")
+
+    trajectories_to_html(
+        trajectories,
+        html_save_path,
+        render_config=RenderConfig(image_size=image_size),
+    )
 
 
 if __name__ == "__main__":

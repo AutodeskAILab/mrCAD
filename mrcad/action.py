@@ -30,6 +30,8 @@ class Drawing:
             )
 
         for spline in self.splines:
+            if len(spline) <= 3:
+                continue
             deduplicated_spline = list()
             for pt in spline:
                 if pt not in deduplicated_spline:

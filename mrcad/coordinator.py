@@ -1,3 +1,4 @@
+from copy import deepcopy
 from mrcad.agents import AbstractDesignerAgent, AbstractMakerAgent
 from mrcad.env import mrCADEnvironment, State
 from mrcad.design import Design
@@ -21,13 +22,14 @@ class SynchronousCoordinator:
         observation = self.env.reset()
         trajectory = []
         while not done and not truncate:
+            current_state = deepcopy(self.env.state)
             if self.env.state.turn == Role.DESIGNER:
                 action = self.designer.act(observation[Role.DESIGNER])
             elif self.env.state.turn == Role.MAKER:
                 action = self.maker.act(observation[Role.MAKER])
 
             observation, rewards, done, truncate, _ = self.env.step(action)
-            trajectory.append((self.env.state, action, rewards))
+            trajectory.append((current_state, action, rewards, self.env.state))
             if done or truncate:
                 break
 

@@ -176,8 +176,16 @@ class Design:
         Returns:
         - float: The Chamfer distance.
         """
-        arr1 = self.to_image(flatten=True)
-        arr2 = other_design.to_image(flatten=True)
+        arr1 = self.to_image(
+            flatten=True,
+            ignore_out_of_bounds=True,
+            render_config=ru.RenderConfig(image_size=320),
+        )
+        arr2 = other_design.to_image(
+            flatten=True,
+            ignore_out_of_bounds=True,
+            render_config=ru.RenderConfig(image_size=320),
+        )
 
         point_cloud1 = np.argwhere(arr1 == 0)
         point_cloud2 = np.argwhere(arr2 == 0)

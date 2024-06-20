@@ -2,6 +2,8 @@ from typing import Union, Tuple
 import numpy as np
 import math
 from dataclasses import dataclass
+from pathlib import Path
+import matplotlib.pyplot as plt
 
 
 def find_circle(x1, y1, x2, y2, x3, y3):
@@ -99,7 +101,7 @@ class RenderConfig:
 
     def transform(self, x, y):
         # invert y first for drawing only
-        y = -y
+        y = y
 
         # with the border, the grid is of size grid_size + 2
         # the center of the grid is at (grid_size + 2) // 2
