@@ -70,7 +70,7 @@ def trajectories_to_html(
             <td><img src="./images/current_{i}.png" /></td>
             <td><img src="./images/drawing_{i}.png" /></td>
             <td>{text}</td>
-            <td><img src="./next_{i}.png" /></td>
+            <td><img src="./images/next_{i}.png" /></td>
             <td>{reward[Role.MAKER]}</td>
         </tr>
         """

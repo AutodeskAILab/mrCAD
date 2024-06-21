@@ -30,30 +30,39 @@ class Drawing:
             )
 
         for spline in self.splines:
-            if len(spline) <= 3:
-                continue
             deduplicated_spline = list()
             for pt in spline:
                 if pt not in deduplicated_spline:
                     deduplicated_spline.append(pt)
 
-            spline_array = np.array(deduplicated_spline)
-            x = spline_array[:, 0]
-            y = spline_array[:, 1]
-            tck, u = interpolate.splprep([x, y], s=render_config.spline_smoothing)
-            x_shape, y_shape = interpolate.splev(
-                np.linspace(0, 1, render_config.spline_resolution), tck, der=0
-            )
-            spline_shape = np.column_stack(
-                (x_shape.astype(np.int32), y_shape.astype(np.int32))
-            )
-            image = cv2.polylines(
-                image,
-                [spline_shape],
-                False,
-                render_config.get_drawing_color(),
-                thickness=render_config.drawing_thickness,
-            )
+            if len(deduplicated_spline) <= 3:
+                # need more than 3 points to interpolate a spline, so render as a line instead
+                spline_array = np.array(deduplicated_spline)
+                image = cv2.polylines(
+                    image,
+                    [spline_array.astype(np.int32)],
+                    False,
+                    render_config.get_drawing_color(),
+                    thickness=render_config.drawing_thickness,
+                )
+            else:
+                spline_array = np.array(deduplicated_spline)
+                x = spline_array[:, 0]
+                y = spline_array[:, 1]
+                tck, u = interpolate.splprep([x, y], s=render_config.spline_smoothing)
+                x_shape, y_shape = interpolate.splev(
+                    np.linspace(0, 1, render_config.spline_resolution), tck, der=0
+                )
+                spline_shape = np.column_stack(
+                    (x_shape.astype(np.int32), y_shape.astype(np.int32))
+                )
+                image = cv2.polylines(
+                    image,
+                    [spline_shape],
+                    False,
+                    render_config.get_drawing_color(),
+                    thickness=render_config.drawing_thickness,
+                )
 
         return image
 
