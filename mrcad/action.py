@@ -53,9 +53,15 @@ class Drawing:
                 x_shape, y_shape = interpolate.splev(
                     np.linspace(0, 1, render_config.spline_resolution), tck, der=0
                 )
-                spline_shape = np.column_stack(
-                    (x_shape.astype(np.int32), y_shape.astype(np.int32))
+
+                spline_shape = np.array(
+                    [
+                        render_config.transform(x, y)
+                        for x, y in np.column_stack((x_shape, y_shape)).tolist()
+                    ],
+                    dtype=np.int32,
                 )
+
                 image = cv2.polylines(
                     image,
                     [spline_shape],

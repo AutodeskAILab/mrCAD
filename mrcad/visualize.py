@@ -34,14 +34,14 @@ def trajectories_to_html(
                 save_dir / "images" / f"target_{i}.png",
                 target.to_image(
                     ignore_out_of_bounds=True,
-                    render_config=ru.RenderConfig(image_size=320),
+                    render_config=render_config,
                 ),
             )
             plt.imsave(
                 save_dir / "images" / f"current_{i}.png",
                 current.to_image(
                     ignore_out_of_bounds=True,
-                    render_config=ru.RenderConfig(image_size=320),
+                    render_config=render_config,
                 ),
             )
             plt.imsave(
@@ -49,15 +49,16 @@ def trajectories_to_html(
                 drawing.to_image(
                     current.to_image(
                         ignore_out_of_bounds=True,
-                        render_config=ru.RenderConfig(image_size=320),
-                    )
+                        render_config=render_config,
+                    ),
+                    render_config=render_config,
                 ),
             )
             plt.imsave(
                 save_dir / "images" / f"next_{i}.png",
                 next_design.to_image(
                     ignore_out_of_bounds=True,
-                    render_config=ru.RenderConfig(image_size=320),
+                    render_config=render_config,
                 ),
             )
         except ru.Collinear:

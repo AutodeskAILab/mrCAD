@@ -100,14 +100,11 @@ class RenderConfig:
         return self.background_color
 
     def transform(self, x, y):
-        # invert y first for drawing only
-        y = y
-
         # with the border, the grid is of size grid_size + 2
         # the center of the grid is at (grid_size + 2) // 2
         # add an offset of 1 to account for the border
-        x = x + (self.grid_size + 2) // 2 + 1
-        y = y + (self.grid_size + 2) // 2 + 1
+        x = x + (self.grid_size + 2) // 2
+        y = y + (self.grid_size + 2) // 2
         x = int(x * self.image_size / (self.grid_size + 2))
         y = int(y * self.image_size / (self.grid_size + 2))
         return x, y

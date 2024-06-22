@@ -123,6 +123,25 @@ class Circle:
 class Design:
     curves: tuple[Union[Line, Arc, Circle]]
 
+    def to_json(self):
+        return {
+            "curves": [curve.to_json() for curve in self.curves],
+        }
+
+    @classmethod
+    def from_json(cls, json_drawing: dict):
+        curves = []
+        for json_curve in json_drawing.get("curves", []):
+            if json_curve["type"] == "line":
+                curves.append(Line(json_curve["control_points"]))
+            elif json_curve["type"] == "arc":
+                curves.append(Arc(json_curve["control_points"]))
+            elif json_curve["type"] == "circle":
+                curves.append(Circle(json_curve["control_points"]))
+            else:
+                raise ValueError(f"Unknown curve type: {json_curve['type']}")
+        return cls(curves)
+
     def to_image(
         self,
         render_config: ru.RenderConfig = None,
@@ -151,19 +170,31 @@ class Design:
             )
 
         if not ignore_out_of_bounds:
-            if (img[:border_size, :, :] != 1).any():
+            if (
+                img[: border_size - render_config.line_thickness // 2, :, :] != 1
+            ).any():
                 raise ru.OutOfBoundsError
-            if (img[-border_size:, :, :] != 1).any():
+            if (
+                img[-(border_size - render_config.line_thickness // 2) :, :, :] != 1
+            ).any():
                 raise ru.OutOfBoundsError
-            if (img[:, :border_size, :] != 1).any():
+            if (
+                img[:, : border_size - render_config.line_thickness // 2, :] != 1
+            ).any():
                 raise ru.OutOfBoundsError
-            if (img[:, -border_size:, :] != 1).any():
+            if (
+                img[:, -(border_size - render_config.line_thickness // 2) :, :] != 1
+            ).any():
                 raise ru.OutOfBoundsError
 
         if flatten:
             return np.logical_and.reduce(img, axis=-1)
         else:
             return img
+
+    def save_image(self, filename: str, render_config: ru.RenderConfig = None):
+        img = self.to_image(render_config=render_config)
+        cv2.imwrite(filename, img)
 
     def chamfer_distance(self, other_design: "Design"):
         """
