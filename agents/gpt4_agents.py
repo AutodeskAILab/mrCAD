@@ -12,6 +12,7 @@ from mrcad.env import MakerObservation
 from mrcad.env_utils import Role
 from mrcad.design import Design
 from mrcad.action import Action
+from agents.editing_actions import EditingAction
 
 
 class GPT4DesignMakerAgent(AbstractMakerAgent):
@@ -171,4 +172,142 @@ class GPT4DesignMakerAgent(AbstractMakerAgent):
             Role.MAKER,
             None,
             Design.from_json(json.loads(response.choices[0].message.content)),
+        )
+
+
+class GPT4DesignEditorAgent(AbstractMakerAgent):
+    def __init__(self, engine="gpt-4o", api_key=None, max_tokens=256, temperature=0.1):
+        self.client = openai.OpenAI(api_key=api_key)
+        self.engine = engine
+        self.max_tokens = max_tokens
+        self.temperature = temperature
+
+    def get_image_string(self, image: np.ndarray):
+        img = Image.fromarray((image * 255).astype(np.uint8))
+        with BytesIO() as buffer:
+            img.save(buffer, format="PNG")
+            img_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+        return f"data:image/png;base64,{img_b64}"
+
+    def make_prompt(self, observation: MakerObservation):
+        system_prompt_messages = self.make_system_prompt_messages()
+        demo_prompt_messages = self.make_demonstration_prompt_messages()
+        turn_prompt_messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": f"Current design:"},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": self.get_image_string(
+                                observation.current_design.to_image()
+                            )
+                        },
+                    },
+                    {
+                        "type": "text",
+                        "text": f"JSON for current design: {json.dumps(observation.current_design.to_json())}",
+                    },
+                    {
+                        "type": "text",
+                        "text": f"Instruction: {observation.instruction[0]}",
+                    },
+                    {"type": "text", "text": f"Drawing:"},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": self.get_image_string(
+                                observation.instruction[1].to_image(
+                                    observation.current_design.to_image()
+                                )
+                            )
+                        },
+                    },
+                ],
+            }
+        ]
+        return [*system_prompt_messages, *turn_prompt_messages]
+
+    def make_demonstration_prompt_messages(self, demonstrations=None):
+        return []
+
+    def make_system_prompt_messages(self):
+        return [
+            {
+                "role": "system",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "You are a helpful assistant. In this task your job is to follow instructions, "
+                        "consisting of text and/or drawings, that explain how to edit a graphic. Graphics are "
+                        "made in a 40*40 grid and consist of lines and arcs, constrained by integer-valued "
+                        "control points. Points are invisible, but must be present in order to place graphical "
+                        "elements that use them as control points. You will receive:\n"
+                        "- an image, containing: the rendered current geometries, rendered in black; and the "
+                        "drawing component of the instructions (if included), rendered in red.\n"
+                        "-a JSON object describing the current geometries in that graphic. The JSON object has a key"
+                        '"curves" that corresponds to a list of curves in the graphic:\n'
+                        '  - lines, of the form {"type": "line", "control_points": [[a, b], [c, d]]}, that '
+                        "connect points (a, b) and (c, d)\n"
+                        '  - arcs, of the form {"type": "arc", "control_points": [[a, b], [c, d], [e, f]]}, '
+                        "that connect points (a, b) and (e, f) with the unique arc that intersects (c, d).\n"
+                        '  - circles, of the form {"type": "circle", "control_points": [[a, b], [c, d]]}, '
+                        "for a circle whose diameter is the line connecting (a, b) and (c, d).\n"
+                        "- text\n"
+                        "You will output a sequence of commands as a JSON list where each element is an action\n"
+                        "- add a line that connects (a, b) and (c, d): "
+                        '{"action": "add_line", "control_points": [[a, b], [c, d]]}}\n'
+                        "- add an arc that connects (a,b) and (e,f) through (c,d): "
+                        '{"action": "add_arc", "control_points": [[a, b], [c, d], [e, f]]}}\n'
+                        "- add a circle passing through points (a,b) and (c,d): "
+                        '{"action": "add_circle", "control_points": [[a, b], [c, d]]}}\n'
+                        "- remove line connecting points (a,b) to (c,d): "
+                        '{"action": "remove_line", "control_points": [[a, b], [c, d]]}}\n'
+                        "- remove arc connecting points (a,b) and (e,f) through (c,d): "
+                        '{"action": "remove_arc", "control_points": [[a, b], [c, d], [e, f]]}}\n'
+                        "- remove circle passing through points (a,b) and (c,d): "
+                        '{"action": "remove_circle", "control_points": [[a, b], [c, d]]}}\n'
+                        "- delete point at (a,b), and delete all lines and arcs that involve this point: "
+                        '{"action": "delete_point", "point": [a, b]}}\n'
+                        "- move point at location (a,b) to (c,d), and update all lines and arcs that involve this point: "
+                        '{"action": "move_point", "point": [a, b], "new_point": [c, d]}}\n'
+                        "Try to give answers that involve as few moves as possible. E.g. if you need to change a"
+                        "line, move one of its points rather than removing the existing line and adding a new one.\n"
+                        "Some examples of valid outputs are:\n"
+                        '1. {"editing_actions": {"action": "remove_line", "control_points": [[1.0, 2.0], [4.0, 5.0]]}}\n'
+                        '2. {"editing_actions": [{"action": "remove_line", "control_points": [[2.0, 8.0], [4.0, 5.0]]}], '
+                        '{"action": "add_line", "control_points": [[4.0, 5.0], [3.0, 9.0]]}}'
+                        '3. {"editing_actions": [{"action": "add_line", "control_points": [[2.0, 3.0], [2.0, 6.0]]}, '
+                        '{"action": "add_line", "control_points": [[4.0, 8.0], [3.0, 8.0]]}, {"action": "add_arc", '
+                        '"control_points": [[2.0, 2.0], [4.0, 1.0], [8.0, 2.0]]}]}\n'
+                        "Each coordinate is a real number between -20 and 20. Your output must be a JSON list.",
+                    }
+                ],
+            }
+        ]
+
+    def act(self, observation: MakerObservation):
+        prompt = self.make_prompt(observation)
+        response = self.client.chat.completions.create(
+            model="gpt-4o",
+            messages=prompt,
+            max_tokens=self.max_tokens,
+            temperature=self.temperature,
+            response_format={"type": "json_object"},
+        )
+
+        generated_actions = [
+            EditingAction.from_json(a)
+            for a in json.loads(response.choices[0].message.content)["editing_actions"]
+        ]
+
+        modified_design = observation.current_design
+        for a in generated_actions:
+            modified_design = a(modified_design)
+
+        return Action(
+            Role.MAKER,
+            None,
+            modified_design,
         )

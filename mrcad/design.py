@@ -121,7 +121,7 @@ class Circle:
 
 @dataclass
 class Design:
-    curves: tuple[Union[Line, Arc, Circle]]
+    curves: Tuple[Union[Line, Arc, Circle]]
 
     def to_json(self):
         return {
