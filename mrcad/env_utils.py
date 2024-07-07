@@ -8,3 +8,11 @@ class Role(Enum):
 
 class OutOfTurnError(Exception):
     pass
+
+
+class ConstraintType(Enum):
+    PARALLEL = 1
+    PERPENDICULAR = 2
+    MEETING_ENDS = 3
+    CONCENTRIC = 4
+    TANGENT = 5
