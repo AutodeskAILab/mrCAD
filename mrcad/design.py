@@ -5,7 +5,10 @@ import mrcad.render_utils as ru
 from mrcad.env_utils import ConstraintType
 import cv2
 from sklearn.neighbors import NearestNeighbors
-from scipy.optimize import linear_sum_assignment
+from copy import deepcopy
+from PIL import Image
+import base64
+from io import BytesIO
 
 
 @dataclass
@@ -15,7 +18,7 @@ class Line:
     def to_json(self):
         return {"type": "line", "control_points": self.control_points}
 
-    def to_image(self, image: np.ndarray, render_config: ru.RenderConfig):
+    def render(self, image: np.ndarray, render_config: ru.RenderConfig):
         (x1, y1), (x2, y2) = self.control_points
         x1, y1 = render_config.transform(x1, y1)
         x2, y2 = render_config.transform(x2, y2)
@@ -88,7 +91,7 @@ class Arc:
     def to_json(self):
         return {"type": "arc", "control_points": self.control_points}
 
-    def to_image(self, image: np.ndarray, render_config: ru.RenderConfig):
+    def render(self, image: np.ndarray, render_config: ru.RenderConfig):
         # get and transform the 3 points
         pt_start, pt_mid, pt_end = self.control_points
         pt_start = render_config.transform(pt_start[0], pt_start[1])
@@ -98,7 +101,7 @@ class Arc:
         term1 = (pt_end[1] - pt_start[1]) * (pt_mid[0] - pt_start[0])
         term2 = (pt_mid[1] - pt_start[1]) * (pt_end[0] - pt_start[0])
         if (term1 - term2) ** 2 < 1e-3:
-            raise ru.Collinear
+            return Line((self.pt_start, self.pt_end)).render(image, render_config)
 
         center, _ = ru.find_circle(
             pt_start[0], pt_start[1], pt_mid[0], pt_mid[1], pt_end[0], pt_end[1]
@@ -205,7 +208,7 @@ class Circle:
     def to_json(self):
         return {"type": "circle", "control_points": self.control_points}
 
-    def to_image(self, image: np.ndarray, render_config: ru.RenderConfig):
+    def render(self, image: np.ndarray, render_config: ru.RenderConfig):
         pt1, pt2 = self.control_points
         pt1 = render_config.transform(pt1[0], pt1[1])
         pt2 = render_config.transform(pt2[0], pt2[1])
@@ -274,8 +277,9 @@ class Design:
                 raise ValueError(f"Unknown curve type: {json_curve['type']}")
         return cls(curves)
 
-    def to_image(
+    def render(
         self,
+        image: np.ndarray = None,  # Render onto an existing image if provided else initialize a blank image
         render_config: ru.RenderConfig = None,
         flatten: bool = False,
         ignore_out_of_bounds: bool = False,
@@ -286,17 +290,20 @@ class Design:
 
         border_size = render_config.image_size // (render_config.grid_size + 2)
 
-        # create a blank RBG image
-        img = np.ones(
-            (
-                render_config.image_size,
-                render_config.image_size,
-                3,
-            )
-        ) * np.array(render_config.get_background_color())
+        if image is None:
+            # create a blank RBG image
+            img = np.ones(
+                (
+                    render_config.image_size,
+                    render_config.image_size,
+                    3,
+                )
+            ) * np.array(render_config.get_background_color())
+        else:
+            img = deepcopy(image)
 
         for curve in self.curves:
-            img = curve.to_image(
+            img = curve.render(
                 img,
                 render_config,
             )
@@ -323,6 +330,57 @@ class Design:
             return np.logical_and.reduce(img, axis=-1)
         else:
             return img
+
+    def to_image(
+        self,
+        return_image_type: str = "PIL.Image",
+        image=None,  # Render onto an existing image if provided else initialize a blank image
+        render_config: ru.RenderConfig = None,
+        flatten: bool = False,
+        ignore_out_of_bounds: bool = False,
+    ):
+        assert return_image_type in [
+            "PIL.Image",
+            "numpy.ndarray",
+            "base64",
+        ], f"Unknown return_image_type: {return_image_type}"
+
+        canvas = None
+        if image is not None:
+            if isinstance(image, np.ndarray):
+                if (
+                    image.dtype == np.float64
+                    and image.max() <= 1.0
+                    and image.min() >= 0.0
+                ):
+                    canvas = image
+                elif (
+                    image.dtype == np.uint8 and image.max() <= 255 and image.min() >= 0
+                ):
+                    canvas = image / 255.0
+                else:
+                    raise ValueError("Invalid image type")
+            elif isinstance(image, bytes):
+                canvas = np.array(Image.open(BytesIO(image))) / 255.0
+
+        rendered = self.render(
+            image=canvas,
+            render_config=render_config,
+            flatten=flatten,
+            ignore_out_of_bounds=ignore_out_of_bounds,
+        )
+
+        if return_image_type == "PIL.Image":
+            return Image.fromarray((rendered * 255).astype(np.uint8))
+        elif return_image_type == "numpy.ndarray":
+            return rendered
+        elif return_image_type == "base64":
+            img = Image.fromarray((rendered * 255).astype(np.uint8))
+            with BytesIO() as buffer:
+                img.save(buffer, format="PNG")
+                img_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+            return img_b64
 
     def save_image(self, filename: str, render_config: ru.RenderConfig = None):
         img = self.to_image(render_config=render_config)
@@ -367,128 +425,23 @@ class Design:
         # Average the distances
         return (distances1.mean() + distances2.mean()) / 2
 
-    def get_curve_similarity_matrix(
-        self, other_design: "Design", render_config: ru.RenderConfig = None
-    ):
-        if render_config is None:
-            render_config = ru.RenderConfig()
-        similarity_matrix = np.zeros((len(self.curves), len(other_design.curves)))
-        for i, curve1 in enumerate(self.curves):
-            for j, curve2 in enumerate(other_design.curves):
-                similarity_matrix[i, j] = curve1.similarity(curve2, render_config)
-
-        return similarity_matrix
-
-    def similarity(
-        self,
-        other_design: "Design",
-        render_config: ru.RenderConfig = None,
-        truncate: bool = False,
-    ):
-        if render_config is None:
-            render_config = ru.RenderConfig()
-
-        similarity_matrix = self.get_curve_similarity_matrix(
-            other_design, render_config
-        )
-
-        row_ind, col_ind = linear_sum_assignment(similarity_matrix, maximize=True)
-        element_distances = similarity_matrix[row_ind, col_ind]
-
-        if truncate:
-            if len(element_distances) == 0:
-                return 0
-            else:
-                return element_distances.mean()
-        else:
-            unmatched_element_distances = np.zeros(
-                max(len(self.curves), len(other_design.curves)) - len(element_distances)
+    def round(self, precision: int):
+        rounded_curves = list()
+        for curve in self.curves:
+            rounded_control_points = tuple(
+                (
+                    round(x, precision) if precision > 0 else int(round(x, precision)),
+                    round(y, precision) if precision > 0 else int(round(y, precision)),
+                )
+                for x, y in curve.control_points
             )
-            element_distances_padded = np.concatenate(
-                (element_distances, unmatched_element_distances)
-            )
+            if isinstance(curve, Line):
+                rounded_curve = Line(rounded_control_points)
+            elif isinstance(curve, Arc):
+                rounded_curve = Arc(rounded_control_points)
+            elif isinstance(curve, Circle):
+                rounded_curve = Circle(rounded_control_points)
 
-            return element_distances_padded.mean()
+            rounded_curves.append(rounded_curve)
 
-    def get_constraints(self):
-        constraints = {
-            (i, j): set()
-            for i in range(len(self.curves))
-            for j in range(len(self.curves))
-            if j > i
-        }
-        for i, curve1 in enumerate(self.curves):
-            for j, curve2 in enumerate(self.curves):
-                if j <= i:
-                    continue
-
-                if isinstance(curve1, Line):
-                    if isinstance(curve2, Line):
-                        if curve1.parallel(curve2):
-                            constraints[(i, j)].add(ConstraintType.PARALLEL)
-                        elif curve1.perpendicular(curve2):
-                            constraints[(i, j)].add(ConstraintType.PERPENDICULAR)
-                        elif curve1.meeting_ends(curve2):
-                            constraints[(i, j)].add(ConstraintType.MEETING_ENDS)
-                    elif isinstance(curve2, Arc):
-                        if curve1.meeting_ends(curve2):
-                            constraints[(i, j)].add(ConstraintType.MEETING_ENDS)
-                    else:
-                        pass
-                elif isinstance(curve1, Arc):
-                    if isinstance(curve2, Line):
-                        if curve1.meeting_ends(curve2):
-                            constraints[(i, j)].add(ConstraintType.MEETING_ENDS)
-                    elif isinstance(curve2, Arc):
-                        if curve1.concentric(curve2):
-                            constraints[(i, j)].add(ConstraintType.CONCENTRIC)
-                    elif isinstance(curve2, Circle):
-                        if curve1.concentric(curve2):
-                            constraints[(i, j)].add(ConstraintType.CONCENTRIC)
-                else:
-                    if isinstance(curve2, Arc):
-                        if curve1.concentric(curve2):
-                            constraints[(i, j)].add(ConstraintType.CONCENTRIC)
-                    elif isinstance(curve2, Circle):
-                        if curve1.concentric(curve2):
-                            constraints[(i, j)].add(ConstraintType.CONCENTRIC)
-        return constraints
-
-    @classmethod
-    def _constraint_score(cls, design1: "Design", design2: "Design"):
-        assert len(design1.curves) >= len(design2.curves)
-        constraints1 = design1.get_constraints()
-        constraints2 = design2.get_constraints()
-
-        similarity_matrix = design1.get_curve_similarity_matrix(design2)
-        row_ind, col_ind = linear_sum_assignment(similarity_matrix, maximize=True)
-        mapping = {i: None for i in range(len(design1.curves))}
-        for i, j in zip(row_ind, col_ind):
-            mapping[i] = j
-
-        intersection = 0
-        union = 0
-        for i in range(len(design1.curves)):
-            for j in range(len(design1.curves)):
-                if j <= i:
-                    continue
-
-                if mapping[i] is None or mapping[j] is None:
-                    union += len(constraints1[(i, j)])
-                else:
-                    if mapping[i] > mapping[j]:
-                        p, q = mapping[j], mapping[i]
-                    else:
-                        p, q = mapping[i], mapping[j]
-                    union += len(constraints1[(i, j)].union(constraints2[(p, q)]))
-                    intersection += len(
-                        constraints1[(i, j)].intersection(constraints2[(p, q)])
-                    )
-
-        return intersection / union
-
-    def constraint_score(self, other_design: "Design"):
-        if len(self.curves) < len(other_design.curves):
-            return Design._constraint_score(other_design, self)
-        else:
-            return Design._constraint_score(self, other_design)
+        return Design(tuple(rounded_curves))
