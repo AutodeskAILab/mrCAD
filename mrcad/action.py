@@ -6,13 +6,16 @@ import cv2
 from mrcad.env_utils import Role
 from mrcad.design import Design
 import mrcad.render_utils as ru
+from PIL import Image
+from io import BytesIO
+import base64
 
 
 @dataclass
 class Drawing:
     splines: Tuple[Tuple[float, float]]
 
-    def to_image(
+    def render(
         self, image: np.ndarray = None, render_config: Optional[ru.RenderConfig] = None
     ):
         if render_config is None:
@@ -71,6 +74,54 @@ class Drawing:
                 )
 
         return image
+
+    def to_image(
+        self,
+        return_image_type: str = "PIL.Image",
+        image=None,  # Render onto an existing image if provided else initialize a blank image
+        render_config: ru.RenderConfig = None,
+    ):
+        assert return_image_type in [
+            "PIL.Image",
+            "numpy.ndarray",
+            "base64",
+        ], f"Unknown return_image_type: {return_image_type}"
+
+        canvas = None
+        if image is not None:
+            if isinstance(image, np.ndarray):
+                if (
+                    image.dtype == np.float64
+                    and image.max() <= 1.0
+                    and image.min() >= 0.0
+                ):
+                    canvas = image
+                elif (
+                    image.dtype == np.uint8 and image.max() <= 255 and image.min() >= 0
+                ):
+                    canvas = image / 255.0
+                else:
+                    raise ValueError("Invalid image type")
+            elif isinstance(image, bytes):
+                canvas = np.array(Image.open(BytesIO(image))) / 255.0
+            elif isinstance(image, Image.Image):
+                canvas = np.array(image) / 255.0
+            else:
+                raise ValueError("Invalid image type provided as input")
+
+        rendered = self.render(image=canvas, render_config=render_config)
+
+        if return_image_type == "PIL.Image":
+            return Image.fromarray((rendered * 255).astype(np.uint8))
+        elif return_image_type == "numpy.ndarray":
+            return rendered
+        elif return_image_type == "base64":
+            img = Image.fromarray((rendered * 255).astype(np.uint8))
+            with BytesIO() as buffer:
+                img.save(buffer, format="PNG")
+                img_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+            return img_b64
 
 
 @dataclass
