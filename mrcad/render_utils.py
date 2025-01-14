@@ -7,13 +7,6 @@ import matplotlib.pyplot as plt
 
 
 def find_circle(x1, y1, x2, y2, x3, y3):
-    # If the first point coincides with the third point, it is a full circle
-    if x1 == x3 and y1 == y3:
-        # Return the midpoint of the first and second point
-        ret = [(x1 + x2) / 2, (y1 + y2) / 2]
-        print(ret)
-        return ret
-
     x12 = x1 - x2
     x13 = x1 - x3
 

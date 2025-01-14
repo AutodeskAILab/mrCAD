@@ -2,9 +2,17 @@ from enum import Enum
 
 
 class Role(Enum):
-    DESIGNER = 1
-    MAKER = 2
+    DESIGNER = "designer"
+    MAKER = "maker"
 
 
 class OutOfTurnError(Exception):
     pass
+
+
+class ConstraintType(Enum):
+    PARALLEL = 1
+    PERPENDICULAR = 2
+    MEETING_ENDS = 3
+    CONCENTRIC = 4
+    TANGENT = 5

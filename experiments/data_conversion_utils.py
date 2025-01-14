@@ -26,7 +26,12 @@ def canonicalize_circle(circle: Circle):
         )
         / 2
     )
-    return Circle(((center[0] - radius, center[1]), (center[0] + radius, center[1])))
+    return Circle(
+        control_points=(
+            (center[0] - radius, center[1]),
+            (center[0] + radius, center[1]),
+        )
+    )
 
 
 def get_design_from_record(record, render_config: RenderConfig = None):
@@ -44,14 +49,16 @@ def get_design_from_record(record, render_config: RenderConfig = None):
         if curve["name"] == "arc_3pt":
             if curve["start"] == curve["end"]:
                 curves_list.append(
-                    Circle((points[curve["start"]], points[curve["mid"]]))
+                    Circle(
+                        control_points=(points[curve["start"]], points[curve["mid"]])
+                    )
                 )
             elif curve["mid"] == curve["start"] or curve["mid"] == curve["end"]:
                 continue
             else:
                 curves_list.append(
                     Arc(
-                        (
+                        control_points=(
                             points[curve["start"]],
                             points[curve["mid"]],
                             points[curve["end"]],
@@ -59,8 +66,15 @@ def get_design_from_record(record, render_config: RenderConfig = None):
                     )
                 )
         elif curve["name"] == "line":
+<<<<<<< HEAD
             curves_list.append(Line((points[curve["pt1"]], points[curve["pt2"]])))
     return Design(tuple(curves_list))
+=======
+            curves_list.append(
+                Line(control_points=(points[curve["pt1"]], points[curve["pt2"]]))
+            )
+    return Design(curves=curves_list)
+>>>>>>> env-setup
 
 
 def get_strokes_from_record(record, render_config: RenderConfig = None):
@@ -140,9 +154,18 @@ def executeActions(actions):
             None,
         )
 
+<<<<<<< HEAD
         if pt1_id and pt2_id:
             return {"name": "line", "pt1": pt1_id, "pt2": pt2_id}
         return None
+=======
+        if isinstance(curve, Line):
+            normalized_curve = Line(control_points=normalized_control_points)
+        elif isinstance(curve, Arc):
+            normalized_curve = Arc(control_points=normalized_control_points)
+        elif isinstance(curve, Circle):
+            normalized_curve = Circle(control_points=normalized_control_points)
+>>>>>>> env-setup
 
     def get_arc_repr_from_action(arc_content):
         curve_name = arc_content[0]
@@ -150,6 +173,7 @@ def executeActions(actions):
         pt2_coord_i, pt2_coord_j = arc_content[2]
         pt3_coord_i, pt3_coord_j = arc_content[3]
 
+<<<<<<< HEAD
         pt1_id = next(
             (
                 pt_id
@@ -363,3 +387,6 @@ def executeActions(actions):
         "points": points,
         "curves": curves,
     }, executable_actions
+=======
+    return Design(curves=normalized_curves)
+>>>>>>> env-setup
