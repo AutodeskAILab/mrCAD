@@ -1,5 +1,13 @@
-from typing import Union, Tuple
-from dataclasses import dataclass
+from typing import Union, Tuple, Any, Literal
+from typing_extensions import Annotated
+from collections.abc import Iterable
+from pydantic import (
+    BaseModel,
+    model_serializer,
+    model_validator,
+    field_validator,
+    Field,
+)
 import numpy as np
 import mrcad.render_utils as ru
 from mrcad.env_utils import ConstraintType
@@ -11,12 +19,9 @@ import base64
 from io import BytesIO
 
 
-@dataclass
-class Line:
+class Line(BaseModel):
+    type: Literal["line"]
     control_points: Tuple[Tuple[float, float], Tuple[float, float]]
-
-    def to_json(self):
-        return {"type": "line", "control_points": self.control_points}
 
     def render(self, image: np.ndarray, render_config: ru.RenderConfig):
         (x1, y1), (x2, y2) = self.control_points
@@ -84,12 +89,9 @@ class Line:
             )
 
 
-@dataclass
-class Arc:
+class Arc(BaseModel):
+    type: Literal["arc"]
     control_points: Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]
-
-    def to_json(self):
-        return {"type": "arc", "control_points": self.control_points}
 
     def render(self, image: np.ndarray, render_config: ru.RenderConfig):
         # get and transform the 3 points
@@ -201,12 +203,9 @@ class Arc:
             )
 
 
-@dataclass
-class Circle:
+class Circle(BaseModel):
+    type: Literal["circle"]
     control_points: Tuple[Tuple[float, float], Tuple[float, float]]
-
-    def to_json(self):
-        return {"type": "circle", "control_points": self.control_points}
 
     def render(self, image: np.ndarray, render_config: ru.RenderConfig):
         pt1, pt2 = self.control_points
@@ -254,28 +253,11 @@ class Circle:
         return center1 == center2
 
 
-@dataclass
-class Design:
-    curves: tuple[Union[Line, Arc, Circle]]
+Curve = Annotated[Union[Line, Arc, Circle], Field(discriminator="type")]
 
-    def to_json(self):
-        return {
-            "curves": [curve.to_json() for curve in self.curves],
-        }
 
-    @classmethod
-    def from_json(cls, json_drawing: dict):
-        curves = []
-        for json_curve in json_drawing.get("curves", []):
-            if json_curve["type"] == "line":
-                curves.append(Line(json_curve["control_points"]))
-            elif json_curve["type"] == "arc":
-                curves.append(Arc(json_curve["control_points"]))
-            elif json_curve["type"] == "circle":
-                curves.append(Circle(json_curve["control_points"]))
-            else:
-                raise ValueError(f"Unknown curve type: {json_curve['type']}")
-        return cls(curves)
+class Design(BaseModel):
+    curves: Tuple[Curve, ...]
 
     def render(
         self,
