@@ -1,76 +1,51 @@
+from typing import List, Tuple
 from dataclasses import dataclass
+from pydantic import BaseModel, Field
 from mrcad.design import Design
 from mrcad.env_utils import Role, OutOfTurnError
-from mrcad.action import Action, Drawing
+from mrcad.action import Action, Instruction, Execution, Drawing
 
 
-@dataclass
-class DesignerObservation:
+class State(BaseModel):
     target: Design
-    current_design: Design
-    turn: Role
+    conversation_history: List[Tuple[Design, Action]] = Field(default_factory=list)
 
-
-@dataclass
-class MakerObservation:
-    current_design: Design
-    instruction: tuple[str, Drawing]
-    turn: Role
-
-
-@dataclass
-class State:
-    target: Design
-    current_design: Design
-    instruction: tuple[str, Drawing]
-    turn: Role
-
-    def observe(self, role: Role):
-        if role == Role.DESIGNER:
-            return DesignerObservation(
-                target=self.target,
-                current_design=self.current_design,
-                turn=self.turn,
-            )
-        elif role == Role.MAKER:
-            return MakerObservation(
-                current_design=self.current_design,
-                turn=self.turn,
-                instruction=self.instruction,
-            )
+    def get_next_turn_role(self):
+        if len(self.conversation_history) == 0:
+            return Role.DESIGNER
+        elif self.conversation_history[-1][1].role == Role.DESIGNER:
+            return Role.MAKER
+        elif self.conversation_history[-1][1].role == Role.MAKER:
+            return Role.DESIGNER
         else:
-            raise ValueError(f"Invalid role: {role}")
+            raise ValueError("Invalid conversation history")
 
     def update(self, action: Action):
-        if self.turn != action.role:
-            raise OutOfTurnError
+        if action.role != self.get_next_turn_role():
+            raise OutOfTurnError()
 
         if action.role == Role.DESIGNER:
-            assert action.design is None, "Designer cannot execute a design"
+            current_design = (
+                self.conversation_history[-1][0]
+                if len(self.conversation_history) > 0
+                else Design(curves=[])
+            )
             return State(
                 target=self.target,
-                current_design=self.current_design,
-                instruction=action.instruction,
-                turn=Role.MAKER,
+                conversation_history=[
+                    *self.conversation_history,
+                    (current_design, action),
+                ],
             )
 
         if action.role == Role.MAKER:
-            assert action.instruction is None, "Maker cannot provide an instruction"
             return State(
                 target=self.target,
-                current_design=action.design,
-                instruction=None,
-                turn=Role.DESIGNER,
+                conversation_history=[
+                    *self.conversation_history,
+                    (action.design, Execution()),
+                ],
             )
-
-    @classmethod
-    def initial(cls, target: Design):
-        return cls(
-            target=target,
-            current_design=Design(tuple()),
-            instruction=None,
-            turn=Role.DESIGNER,
-        )
 
 
 @dataclass
@@ -81,16 +56,15 @@ class mrCADEnvironment:
     max_steps: int = 6
 
     def reset(self):
-        self.state = State.initial(self.state.target)
-        return {role: self.state.observe(role) for role in iter(Role)}
+        self.state = State(target=self.state.target)
+        return self.state
 
     def step(self, action: Action):
         self.state = self.state.update(action)
         self.steps += 1
         return (
-            {role: self.state.observe(role) for role in iter(Role)},
+            self.state,
             {role: self.reward_fns[role](self.state) for role in iter(Role)},
             False,
             self.steps >= self.max_steps,
-            None,  # infos are not used in this environment but kept for compatibility
         )

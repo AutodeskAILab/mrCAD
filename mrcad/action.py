@@ -1,5 +1,6 @@
-from typing import Tuple, Optional
-from dataclasses import dataclass
+from typing import Tuple, Optional, Literal, Union
+from typing_extensions import Annotated
+from pydantic import BaseModel, Field
 import numpy as np
 from scipy import interpolate
 import cv2
@@ -11,9 +12,8 @@ from io import BytesIO
 import base64
 
 
-@dataclass
-class Drawing:
-    splines: Tuple[Tuple[float, float]]
+class Drawing(BaseModel):
+    splines: Tuple[Tuple[float, float]] = Field(default_factory=tuple)
 
     def render(
         self, image: np.ndarray = None, render_config: Optional[ru.RenderConfig] = None
@@ -124,8 +124,15 @@ class Drawing:
             return img_b64
 
 
-@dataclass
-class Action:
-    role: Role
-    instruction: tuple[str, Drawing]
-    design: Design
+class Instruction(BaseModel):
+    role: Literal[Role.DESIGNER] = Role.DESIGNER
+    text: Optional[str] = None
+    drawing: Optional[Drawing] = None
+
+
+class Execution(BaseModel):
+    role: Literal[Role.MAKER] = Role.MAKER
+    design: Optional[Design] = None
+
+
+Action = Annotated[Union[Instruction, Execution], Field(discriminator="role")]

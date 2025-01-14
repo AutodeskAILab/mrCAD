@@ -20,7 +20,7 @@ from io import BytesIO
 
 
 class Line(BaseModel):
-    type: Literal["line"]
+    type: Literal["line"] = "line"
     control_points: Tuple[Tuple[float, float], Tuple[float, float]]
 
     def render(self, image: np.ndarray, render_config: ru.RenderConfig):
@@ -90,7 +90,7 @@ class Line(BaseModel):
 
 
 class Arc(BaseModel):
-    type: Literal["arc"]
+    type: Literal["arc"] = "arc"
     control_points: Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]
 
     def render(self, image: np.ndarray, render_config: ru.RenderConfig):
@@ -204,7 +204,7 @@ class Arc(BaseModel):
 
 
 class Circle(BaseModel):
-    type: Literal["circle"]
+    type: Literal["circle"] = "circle"
     control_points: Tuple[Tuple[float, float], Tuple[float, float]]
 
     def render(self, image: np.ndarray, render_config: ru.RenderConfig):

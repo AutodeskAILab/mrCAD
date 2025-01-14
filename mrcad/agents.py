@@ -1,13 +1,15 @@
-from mrcad.env import DesignerObservation, MakerObservation
-from mrcad.action import Drawing
+from typing import List, Tuple
+from mrcad.action import Action
 from mrcad.design import Design
 
 
 class AbstractDesignerAgent:
-    def act(self, observation: DesignerObservation) -> tuple[str, Drawing]:
+    def act(
+        self, target: Design, conversation_history: List[Tuple[Design, Action]]
+    ) -> Action:
         raise NotImplementedError
 
 
 class AbstractMakerAgent:
-    def act(self, observation: MakerObservation) -> Design:
+    def act(self, conversation_history: List[Tuple[Design, Action]]) -> Design:
         raise NotImplementedError

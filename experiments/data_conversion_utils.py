@@ -15,7 +15,12 @@ def canonicalize_circle(circle: Circle):
         )
         / 2
     )
-    return Circle(((center[0] - radius, center[1]), (center[0] + radius, center[1])))
+    return Circle(
+        control_points=(
+            (center[0] - radius, center[1]),
+            (center[0] + radius, center[1]),
+        )
+    )
 
 
 def get_design_from_record(record, render_config: RenderConfig = None):
@@ -33,12 +38,14 @@ def get_design_from_record(record, render_config: RenderConfig = None):
         if curve["name"] == "arc_3pt":
             if curve["start"] == curve["end"]:
                 curves_list.append(
-                    Circle((points[curve["start"]], points[curve["mid"]]))
+                    Circle(
+                        control_points=(points[curve["start"]], points[curve["mid"]])
+                    )
                 )
             else:
                 curves_list.append(
                     Arc(
-                        (
+                        control_points=(
                             points[curve["start"]],
                             points[curve["mid"]],
                             points[curve["end"]],
@@ -46,8 +53,10 @@ def get_design_from_record(record, render_config: RenderConfig = None):
                     )
                 )
         elif curve["name"] == "line":
-            curves_list.append(Line((points[curve["pt1"]], points[curve["pt2"]])))
-    return Design(curves_list)
+            curves_list.append(
+                Line(control_points=(points[curve["pt1"]], points[curve["pt2"]]))
+            )
+    return Design(curves=curves_list)
 
 
 def get_strokes_from_record(record, render_config: RenderConfig = None):
@@ -98,12 +107,12 @@ def normalize_curves(design: Design, render_config: RenderConfig = None):
             normalized_control_points.append((x, y))
 
         if isinstance(curve, Line):
-            normalized_curve = Line(normalized_control_points)
+            normalized_curve = Line(control_points=normalized_control_points)
         elif isinstance(curve, Arc):
-            normalized_curve = Arc(normalized_control_points)
+            normalized_curve = Arc(control_points=normalized_control_points)
         elif isinstance(curve, Circle):
-            normalized_curve = Circle(normalized_control_points)
+            normalized_curve = Circle(control_points=normalized_control_points)
 
         normalized_curves.append(normalized_curve)
 
-    return Design(normalized_curves)
+    return Design(curves=normalized_curves)
