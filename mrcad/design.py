@@ -9,6 +9,7 @@ from pydantic import (
     Field,
 )
 import numpy as np
+from math import isclose
 import mrcad.render_utils as ru
 from mrcad.env_utils import ConstraintType
 import cv2
@@ -20,7 +21,7 @@ from io import BytesIO
 
 
 class Line(BaseModel):
-    type: Literal["line"]
+    type: Literal["line"] = "line"
     control_points: Tuple[Tuple[float, float], Tuple[float, float]]
 
     def render(self, image: np.ndarray, render_config: ru.RenderConfig):
@@ -53,7 +54,40 @@ class Line(BaseModel):
         slope1 = (y2 - y1) / (x2 - x1)
         slope2 = (y4 - y3) / (x4 - x3)
 
-        return slope1 == slope2
+        return isclose(slope1, slope2, rel_tol=1e-3)
+
+    def parallel_distance(self, other_line: "Line"):
+        if not isinstance(other_line, Line):
+            return None
+
+        if not self.parallel(other_line):
+            return None
+
+        (x1, y1), (x2, y2) = self.control_points
+        (x3, y3), (x4, y4) = other_line.control_points
+
+        dx = x2 - x1
+        dy = y2 - y1
+
+        px = x3 - x1
+        py = y3 - y1
+
+        t1 = (dx * px + dy * py) / (dx * dx + dy * dy)
+
+        dx = x2 - x1
+        dy = y2 - y1
+
+        px = x4 - x1
+        py = y4 - y1
+
+        t2 = (dx * px + dy * py) / (dx * dx + dy * dy)
+
+        if not (0 <= t1 <= 1) and not (0 <= t2 <= 1):
+            return None
+
+        return np.abs((y2 - y1) * x3 - (x2 - x1) * y3 + x2 * y1 - y2 * x1) / np.sqrt(
+            (y2 - y1) ** 2 + (x2 - x1) ** 2
+        )
 
     def perpendicular(self, other_line: "Line"):
         (x1, y1), (x2, y2) = self.control_points
@@ -73,24 +107,26 @@ class Line(BaseModel):
         (x1, y1), (x2, y2) = self.control_points
         if isinstance(other_curve, Line):
             (x3, y3), (x4, y4) = other_curve.control_points
+
             return (
-                (x1, y1) == (x3, y3)
-                or (x1, y1) == (x4, y4)
-                or (x2, y2) == (x3, y3)
-                or (x2, y2) == (x4, y4)
+                np.allclose((x1, y1), (x3, y3), rtol=1e-3)
+                or np.allclose((x1, y1), (x4, y4), rtol=1e-3)
+                or np.allclose((x2, y2), (x3, y3), rtol=1e-3)
+                or np.allclose((x2, y2), (x4, y4), rtol=1e-3)
             )
         else:
             (x3, y3), (x4, y4), (x5, y5) = other_curve.control_points
+
             return (
-                (x1, y1) == (x3, y3)
-                or (x1, y1) == (x5, y5)
-                or (x2, y2) == (x3, y3)
-                or (x2, y2) == (x5, y5)
+                np.allclose((x1, y1), (x3, y3), rtol=1e-3)
+                or np.allclose((x1, y1), (x5, y5), rtol=1e-3)
+                or np.allclose((x2, y2), (x3, y3), rtol=1e-3)
+                or np.allclose((x2, y2), (x5, y5), rtol=1e-3)
             )
 
 
 class Arc(BaseModel):
-    type: Literal["arc"]
+    type: Literal["arc"] = "arc"
     control_points: Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]
 
     def render(self, image: np.ndarray, render_config: ru.RenderConfig):
@@ -103,7 +139,9 @@ class Arc(BaseModel):
         term1 = (pt_end[1] - pt_start[1]) * (pt_mid[0] - pt_start[0])
         term2 = (pt_mid[1] - pt_start[1]) * (pt_end[0] - pt_start[0])
         if (term1 - term2) ** 2 < 1e-3:
-            return Line((self.pt_start, self.pt_end)).render(image, render_config)
+            return Line(control_points=(self.pt_start, self.pt_end)).render(
+                image, render_config
+            )
 
         center, _ = ru.find_circle(
             pt_start[0], pt_start[1], pt_mid[0], pt_mid[1], pt_end[0], pt_end[1]
@@ -181,30 +219,41 @@ class Arc(BaseModel):
         else:
             (x4, y4), (x5, y5) = other_curve.control_points
             center2 = ((x4 + x5) / 2, (y4 + y5) / 2)
-        return center1 == center2
+        return np.allclose(center1, center2, rtol=1e-3)
 
     def meeting_ends(self, other_curve: Union["Line", "Arc"]):
         (x1, y1), (x2, y2), (x3, y3) = self.control_points
         if isinstance(other_curve, Line):
             (x4, y4), (x5, y5) = other_curve.control_points
+
             return (
-                (x1, y1) == (x4, y4)
-                or (x1, y1) == (x5, y5)
-                or (x3, y3) == (x4, y4)
-                or (x3, y3) == (x5, y5)
+                np.allclose((x1, y1), (x4, y4), rtol=1e-3)
+                or np.allclose((x1, y1), (x5, y5), rtol=1e-3)
+                or np.allclose((x3, y3), (x4, y4), rtol=1e-3)
+                or np.allclose((x3, y3), (x5, y5), rtol=1e-3)
             )
         else:
             (x4, y4), (x5, y5), (x6, y6) = other_curve.control_points
+
             return (
-                (x1, y1) == (x4, y4)
-                or (x1, y1) == (x6, y6)
-                or (x3, y3) == (x4, y4)
-                or (x3, y3) == (x6, y6)
+                np.allclose((x1, y1), (x4, y4), rtol=1e-3)
+                or np.allclose((x1, y1), (x6, y6), rtol=1e-3)
+                or np.allclose((x3, y3), (x4, y4), rtol=1e-3)
+                or np.allclose((x3, y3), (x6, y6), rtol=1e-3)
             )
+
+    def get_center(self):
+        (x1, y1), (x2, y2), (x3, y3) = self.control_points
+        return ru.find_circle(x1, y1, x2, y2, x3, y3)[0]
+
+    def get_radius(self):
+        (x1, y1), (x2, y2), (x3, y3) = self.control_points
+        center, _ = ru.find_circle(x1, y1, x2, y2, x3, y3)
+        return np.sqrt((x1 - center[0]) ** 2 + (y1 - center[1]) ** 2)
 
 
 class Circle(BaseModel):
-    type: Literal["circle"]
+    type: Literal["circle"] = "circle"
     control_points: Tuple[Tuple[float, float], Tuple[float, float]]
 
     def render(self, image: np.ndarray, render_config: ru.RenderConfig):
@@ -250,7 +299,15 @@ class Circle(BaseModel):
         else:
             (x3, y3), (x4, y4), (x5, y5) = other_curve.control_points
             center2, _ = ru.find_circle(x3, y3, x4, y4, x5, y5)
-        return center1 == center2
+        return np.allclose(center1, center2, rtol=1e-3)
+
+    def get_center(self):
+        (x1, y1), (x2, y2) = self.control_points
+        return ((x1 + x2) / 2, (y1 + y2) / 2)
+
+    def get_radius(self):
+        (x1, y1), (x2, y2) = self.control_points
+        return np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2) / 2
 
 
 Curve = Annotated[Union[Line, Arc, Circle], Field(discriminator="type")]
@@ -380,11 +437,13 @@ class Design(BaseModel):
         - float: The Chamfer distance.
         """
         arr1 = self.to_image(
+            return_image_type="numpy.ndarray",
             flatten=True,
             ignore_out_of_bounds=True,
             render_config=ru.RenderConfig(image_size=320),
         )
         arr2 = other_design.to_image(
+            return_image_type="numpy.ndarray",
             flatten=True,
             ignore_out_of_bounds=True,
             render_config=ru.RenderConfig(image_size=320),
@@ -418,12 +477,12 @@ class Design(BaseModel):
                 for x, y in curve.control_points
             )
             if isinstance(curve, Line):
-                rounded_curve = Line(rounded_control_points)
+                rounded_curve = Line(control_points=rounded_control_points)
             elif isinstance(curve, Arc):
-                rounded_curve = Arc(rounded_control_points)
+                rounded_curve = Arc(control_points=rounded_control_points)
             elif isinstance(curve, Circle):
-                rounded_curve = Circle(rounded_control_points)
+                rounded_curve = Circle(control_points=rounded_control_points)
 
             rounded_curves.append(rounded_curve)
 
-        return Design(tuple(rounded_curves))
+        return Design(curves=tuple(rounded_curves))

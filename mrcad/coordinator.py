@@ -11,8 +11,8 @@ class SynchronousCoordinator:
         self, target: Design, designer: AbstractDesignerAgent, maker: AbstractMakerAgent
     ):
         self.env = mrCADEnvironment(
-            State.initial(target),
-            {Role.DESIGNER: chamfer_reward, Role.MAKER: chamfer_reward},
+            State(target=target),
+            {Role.DESIGNER: lambda x: None, Role.MAKER: lambda x: None},
         )
         self.designer = designer
         self.maker = maker
@@ -20,17 +20,19 @@ class SynchronousCoordinator:
     def play(self):
         done, truncate = False, False
         observation = self.env.reset()
-        trajectory = []
+        rewards = list()
         while not done and not truncate:
-            current_state = deepcopy(self.env.state)
-            if self.env.state.turn == Role.DESIGNER:
-                action = self.designer.act(observation[Role.DESIGNER])
-            elif self.env.state.turn == Role.MAKER:
-                action = self.maker.act(observation[Role.MAKER])
+            next_turn = self.env.state.get_next_turn_role()
+            if next_turn == Role.DESIGNER:
+                action = self.designer.act(
+                    self.env.state.target, self.env.state.conversation_history
+                )
+            elif next_turn == Role.MAKER:
+                action = self.maker.act(self.env.state.conversation_history)
 
-            observation, rewards, done, truncate, _ = self.env.step(action)
-            trajectory.append((current_state, action, rewards, self.env.state))
+            state, reward, done, truncate = self.env.step(action)
+            rewards.append(reward)
             if done or truncate:
                 break
 
-        return trajectory
+        return state, rewards

@@ -1,4 +1,4 @@
-from mrcad.action import Drawing
+from mrcad.action import Drawing, Instruction, Execution
 from mrcad.design import Design
 from mrcad.agents import AbstractDesignerAgent, AbstractMakerAgent
 from mrcad.action import Action
@@ -10,10 +10,13 @@ class ReplayDesigner(AbstractDesignerAgent):
         self.turns = turns
         self.turn_idx = 0
 
-    def act(self, observation):
-        action = self.turns[self.turn_idx]
+    def act(self, target: Design, conversation_history: list[tuple[Design, Action]]):
+        text, drawing = self.turns[self.turn_idx]
         self.turn_idx += 1
-        return Action(Role.DESIGNER, action, None)
+        return Instruction(
+            text=text if isinstance(text, str) else None,
+            drawing=Drawing(drawing=drawing),
+        )
 
 
 class ReplayMaker(AbstractMakerAgent):
@@ -21,7 +24,7 @@ class ReplayMaker(AbstractMakerAgent):
         self.turns = turns
         self.turn_idx = 0
 
-    def act(self, observation):
+    def act(self, conversation_history: list[tuple[Design, Action]]):
         action = self.turns[self.turn_idx]
         self.turn_idx += 1
-        return Action(Role.MAKER, None, action)
+        return Execution(design=action)
