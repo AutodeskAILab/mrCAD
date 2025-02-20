@@ -202,12 +202,8 @@ class Arc(BaseModel):
                 image, render_config
             )
 
-        center, _ = self.find_circle()
-
-        # radius is distance from center to start point
-        radius = np.sqrt(
-            (pt_start[0] - center[0]) ** 2 + (pt_start[1] - center[1]) ** 2
-        )
+        # need to create a dummy arc with the rescaled points to find the center and radius
+        center, radius = Arc(control_points=[pt_start, pt_mid, pt_end]).find_circle()
 
         # get the start angle
         start_angle = np.arctan2(pt_start[1] - center[1], pt_start[0] - center[0])

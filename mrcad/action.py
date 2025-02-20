@@ -13,7 +13,7 @@ import base64
 
 
 class Drawing(BaseModel):
-    splines: Tuple[Tuple[float, float]] = Field(default_factory=tuple)
+    splines: Tuple[Tuple[Tuple[float, float], ...], ...] = Field(default_factory=tuple)
 
     def render(
         self, image: np.ndarray = None, render_config: Optional[ru.RenderConfig] = None
