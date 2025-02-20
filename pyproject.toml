@@ -46,3 +46,8 @@ dependencies = [
 
 [tool.setuptools.package-dir]
 mrcad = "mrcad"
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests"
+]
