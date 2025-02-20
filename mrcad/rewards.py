@@ -17,8 +17,8 @@ def chamfer_reward(state: State):
     return -state.current_design.chamfer_distance(state.target)
 
 
-def design_distance(design1: Design, design2: Design):
+def design_distance(state: State):
     """
     Calculates the distance between two designs based on the chamfer distance between the two designs.
     """
-    return design1.design_distance(design2)
+    return state.target.design_distance(state.conversation_history[-1][0])

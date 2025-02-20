@@ -3,7 +3,7 @@ from mrcad.agents import AbstractDesignerAgent, AbstractMakerAgent
 from mrcad.env import mrCADEnvironment, State
 from mrcad.design import Design
 from mrcad.env_utils import Role
-from mrcad.rewards import chamfer_reward
+from mrcad.rewards import design_distance
 
 
 class SynchronousCoordinator:
@@ -12,7 +12,10 @@ class SynchronousCoordinator:
     ):
         self.env = mrCADEnvironment(
             State(target=target),
-            {Role.DESIGNER: lambda x: None, Role.MAKER: lambda x: None},
+            {
+                Role.DESIGNER: lambda x: None,
+                Role.MAKER: design_distance,
+            },
         )
         self.designer = designer
         self.maker = maker
