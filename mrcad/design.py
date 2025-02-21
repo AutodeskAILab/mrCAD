@@ -198,9 +198,9 @@ class Arc(BaseModel):
         term1 = (pt_end[1] - pt_start[1]) * (pt_mid[0] - pt_start[0])
         term2 = (pt_mid[1] - pt_start[1]) * (pt_end[0] - pt_start[0])
         if (term1 - term2) ** 2 < 1e-3:
-            return Line(control_points=(self.pt_start, self.pt_end)).render(
-                image, render_config
-            )
+            return Line(
+                control_points=(self.control_points[0], self.control_points[-1])
+            ).render(image, render_config)
 
         # need to create a dummy arc with the rescaled points to find the center and radius
         center, radius = Arc(control_points=[pt_start, pt_mid, pt_end]).find_circle()
