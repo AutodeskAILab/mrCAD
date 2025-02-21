@@ -31,7 +31,7 @@ class ChatAgent:
                             "type": "image_url",
                             "image_url": {
                                 "url": f"""data:image/png;base64,{action.design.to_image(
-                                    return_image_type='base64'
+                                    return_image_type='base64', ignore_out_of_bounds=True
                                 )}"""
                             },
                         },
@@ -49,7 +49,7 @@ class ChatAgent:
                     "type": "image_url",
                     "image_url": {
                         "url": f"""data:image/png;base64,{action.drawing.to_image(
-                                    image=design.to_image(), return_image_type='base64'
+                                    image=design.to_image(ignore_out_of_bounds=True), return_image_type='base64'
                                 )}"""
                     },
                 },
