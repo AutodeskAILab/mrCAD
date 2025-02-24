@@ -9,12 +9,41 @@ import json
 import numpy as np
 from dataclasses import dataclass
 from pydantic import ValidationError
-from mrcad import Design, Drawing, Instruction, Action, Role, Execution
+from mrcad import Design, Drawing, Instruction, Action, Role, Execution, RenderConfig
 from mrcad.agents import AbstractMakerAgent
-from .prompts import DESIGN_MAKER_SYSTEM_PROMPT, DESIGN_MAKER_USER_PROMPT
+from prompts import DESIGN_MAKER_SYSTEM_PROMPT, DESIGN_MAKER_USER_PROMPT
 
 
 class ChatAgent:
+    def __init__(self, image_format: str = "base64", image_size: int = 256):
+        self.image_size = image_size
+        self.image_format = image_format
+
+    def make_image(self, design: Design = None, drawing: Drawing = None):
+        if design is None and drawing is None:
+            raise ValueError("Either design or drawing must be provided")
+
+        if drawing:
+            image = drawing.to_image(
+                image=design.to_image(
+                    ignore_out_of_bounds=True,
+                    render_config=RenderConfig(image_size=self.image_size),
+                ),
+                return_image_type=self.image_format,
+                render_config=RenderConfig(image_size=self.image_size),
+            )
+        else:
+            image = design.to_image(
+                ignore_out_of_bounds=True,
+                return_image_type=self.image_format,
+                render_config=RenderConfig(image_size=self.image_size),
+            )
+
+        if self.image_format == "base64":
+            return f"""data:image/png;base64,{image}"""
+        else:
+            return image
+
     def make_turn(self, turn: Tuple[Design, Action], round_num: int = None):
         design, action = turn
         if action.role == Role.MAKER:
@@ -30,9 +59,7 @@ class ChatAgent:
                         {
                             "type": "image_url",
                             "image_url": {
-                                "url": f"""data:image/png;base64,{action.design.to_image(
-                                    return_image_type='base64', ignore_out_of_bounds=True
-                                )}"""
+                                "url": self.make_image(action.design),
                             },
                         },
                     ],
@@ -48,9 +75,7 @@ class ChatAgent:
                 {
                     "type": "image_url",
                     "image_url": {
-                        "url": f"""data:image/png;base64,{action.drawing.to_image(
-                                    image=design.to_image(ignore_out_of_bounds=True), return_image_type='base64'
-                                )}"""
+                        "url": self.make_image(design, action.drawing),
                     },
                 },
             ]
