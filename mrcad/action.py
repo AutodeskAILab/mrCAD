@@ -1,11 +1,11 @@
-from typing import Tuple, Optional, Literal, Union
+from typing import Tuple, Optional, Literal, Union, List
 from typing_extensions import Annotated
 from pydantic import BaseModel, Field
 import numpy as np
 from scipy import interpolate
 import cv2
 from mrcad.env_utils import Role
-from mrcad.design import Design
+from mrcad.design import Design, Line, Arc, Circle
 import mrcad.render_utils as ru
 from PIL import Image
 from io import BytesIO
