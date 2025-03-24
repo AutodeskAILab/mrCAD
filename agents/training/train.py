@@ -188,6 +188,9 @@ def train(
 
 
 def main(config_path):
+    """
+    Parse arguments from a YAML file and train a model on the mrCAD dataset.
+    """
     from transformers import HfArgumentParser
 
     parser = HfArgumentParser((mrCADArguments, SFTConfig, ModelConfig))
