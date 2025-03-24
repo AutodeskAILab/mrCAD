@@ -94,3 +94,12 @@ For Qwen2.5 models we evaluated, we used a different prompt that includes the to
 ```
 python -m fire experiments/run_maker_evaluation.py main qwen-vllm http://localhost:$PORT/v1 "dummy" <MODEL_NAME> actions <SAVE_PATH>
 ```
+
+## Training
+For training, we used the following command to run it with [HuggingFace Accelerate](https://github.com/huggingface/accelerate/) and [DeepSpeed](https://github.com/deepspeedai/DeepSpeed).
+
+Before running training, you can run `accelerate config --config_file <DEEPSPEED_CONFIG_FILE>` to set up the configuration based on your compute environment.
+
+```
+accelerate launch --main_process_port $PORT --config_file <DEEPSPEED_CONFIG_FILE> agents/training/train.py experiments/qwen_training_configs/actions_all.yaml
+```
