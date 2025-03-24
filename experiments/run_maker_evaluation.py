@@ -60,6 +60,7 @@ def main(
     temperature=1,
     top_p=0.9,
     eval_split="eval_verified_complete",
+    dataset_config="full",
 ):
     """
     Evaluate a maker agent on one split of the mrCAD dataset. All the evaluations run a VLM agent that queries a VLM through an API compatible with the OpenAI SDK.
@@ -139,6 +140,6 @@ def main(
                 top_p=top_p,
             )
 
-    dataset = load_dataset("saujasv/mrcad", trust_remote_code=True)
+    dataset = load_dataset("saujasv/mrcad", dataset_config, trust_remote_code=True)
 
     run(maker, dataset[eval_split], save_path, agent_output)

@@ -3,11 +3,11 @@ training_games:
 - coverage_unverified
 validation_games:
 - eval_verified_incomplete
-dataset_config: "full"
+dataset_config: "drawing_only"
 image_size: 256
 agent_outputs: "actions"
 model_name_or_path: "Qwen/Qwen2.5-VL-7B-Instruct"
-output_dir: "qwen2_5_vl-action-all-lora"
+output_dir: "/data/tir/projects/tir3/users/svadugur/multi-modal-cad/models-hf-trainer/qwen2_5_vl-drawing-only-action-all-lora"
 per_device_train_batch_size: 1
 per_device_eval_batch_size: 1
 use_peft: true

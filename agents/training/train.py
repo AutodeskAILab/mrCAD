@@ -21,6 +21,7 @@ from agents.training.collator import DataCollatorForInterleavedImages
 class mrCADArguments:
     training_splits: Union[str, List[str]]
     validation_splits: Union[str, List[str]]
+    dataset_config: str = "full"
     image_size: int = 256
     agent_outputs: Literal["design", "actions"] = "design"
 
@@ -142,7 +143,9 @@ def train(
 
     agent = QwenDesignEditorAgent(None, image_size=script_args.image_size)
 
-    dataset = load_dataset("saujasv/mrcad", trust_remote_code=True)
+    dataset = load_dataset(
+        "saujasv/mrcad", script_args.dataset_config, trust_remote_code=True
+    )
 
     dataset = dataset.map(
         lambda x: prepare_game(x["rounds"], agent, processor),
