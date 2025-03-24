@@ -22,7 +22,7 @@ dependencies = [
 	"numpy<=1.26.4",
 	"opencv-python>=4.10.0.84",
 	"opencv-python-headless>=4.11.0.86",
-	"pandas>=2.2.2"
+	"pandas>=2.2.2",
 	"parso",
 	"partial-json-parser",
 	"pillow==10.3.0",
