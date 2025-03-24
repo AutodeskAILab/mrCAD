@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from mrcad.design import Design
 from mrcad.env_utils import Role, OutOfTurnError
-from mrcad.action import Action, Instruction, Execution, Drawing
+from mrcad.action import Action, Execution
 
 
 class State(BaseModel):

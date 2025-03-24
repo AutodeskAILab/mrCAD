@@ -1,9 +1,6 @@
 from typing import Union, Tuple
 import numpy as np
-import math
 from dataclasses import dataclass
-from pathlib import Path
-import matplotlib.pyplot as plt
 
 
 class Collinear(Exception):

@@ -1,9 +1,8 @@
 from typing import List, Tuple
-from copy import deepcopy
 from mrcad.agents import AbstractDesignerAgent, AbstractMakerAgent
 from mrcad.env import mrCADEnvironment, State
 from mrcad.design import Design
-from mrcad.action import Action, Drawing, Instruction, Execution
+from mrcad.action import Action
 from mrcad.env_utils import Role
 from mrcad.rewards import design_distance
 

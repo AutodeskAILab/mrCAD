@@ -3,15 +3,11 @@ from typing_extensions import Annotated
 from collections.abc import Iterable
 from pydantic import (
     BaseModel,
-    model_serializer,
-    model_validator,
-    field_validator,
     Field,
 )
 import numpy as np
 from math import isclose, isnan
 import mrcad.render_utils as ru
-from mrcad.env_utils import ConstraintType
 import cv2
 from sklearn.neighbors import NearestNeighbors
 from copy import deepcopy
