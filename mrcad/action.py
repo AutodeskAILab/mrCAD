@@ -134,5 +134,11 @@ class Execution(BaseModel):
     role: Literal[Role.MAKER] = Role.MAKER
     design: Optional[Design] = None
 
+    def round(self, precision: int = 0):
+        return Execution(
+            role=self.role,
+            design=self.design.round(precision=precision),
+        )
+
 
 Action = Annotated[Union[Instruction, Execution], Field(discriminator="role")]

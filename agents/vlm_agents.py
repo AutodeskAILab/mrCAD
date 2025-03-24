@@ -12,6 +12,15 @@ from dataclasses import dataclass
 from pydantic import ValidationError
 from mrcad import Design, Drawing, Instruction, Action, Role, Execution, RenderConfig
 from mrcad.agents import AbstractMakerAgent
+from mrcad.editing_actions import (
+    Edit,
+    EditExecution,
+    MovePoint,
+    MakeCurve,
+    MoveCurve,
+    RemoveCurve,
+    DeletePoint,
+)
 from transformers import (
     AutoProcessor,
     AutoModelForVision2Seq,
@@ -26,15 +35,6 @@ from agents.prompts import (
     DESIGN_EDITOR_USER_PROMPT,
     TOOLS,
     QWEN_CUSTOM_CHAT_TEMPLATE,
-)
-from agents.editing_actions import (
-    Edit,
-    EditExecution,
-    MovePoint,
-    MakeCurve,
-    MoveCurve,
-    RemoveCurve,
-    DeletePoint,
 )
 from qwen_agent.llm.fncall_prompts.nous_fncall_prompt import (
     NousFnCallPrompt,

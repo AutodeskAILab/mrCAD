@@ -24,6 +24,24 @@ class DeletePoint(BaseModel):
     def make_tool_call(self):
         return {"name": "delete_point", "arguments": {"point": self.point}}
 
+    def round(self, precision: int = 0):
+        return DeletePoint(
+            point=(
+                (
+                    (
+                        round(self.point[0], precision)
+                        if precision > 0
+                        else int(round(self.point[0], precision))
+                    ),
+                    (
+                        round(self.point[1], precision)
+                        if precision > 0
+                        else int(round(self.point[1], precision))
+                    ),
+                )
+            )
+        )
+
 
 class MovePoint(BaseModel):
     """
@@ -75,6 +93,38 @@ class MovePoint(BaseModel):
             "arguments": {"point": self.point, "new_point": self.new_point},
         }
 
+    def round(self, precision: int = 0):
+        return MovePoint(
+            point=(
+                (
+                    (
+                        round(self.point[0], precision)
+                        if precision > 0
+                        else int(round(self.point[0], precision))
+                    ),
+                    (
+                        round(self.point[1], precision)
+                        if precision > 0
+                        else int(round(self.point[1], precision))
+                    ),
+                )
+            ),
+            new_point=(
+                (
+                    (
+                        round(self.new_point[0], precision)
+                        if precision > 0
+                        else int(round(self.new_point[0], precision))
+                    ),
+                    (
+                        round(self.new_point[1], precision)
+                        if precision > 0
+                        else int(round(self.new_point[1], precision))
+                    ),
+                )
+            ),
+        )
+
 
 class MakeCurve(BaseModel):
     """
@@ -109,6 +159,26 @@ class MakeCurve(BaseModel):
             "name": "make_curve",
             "arguments": {"type": self.type, "control_points": self.control_points},
         }
+
+    def round(self, precision: int = 0):
+        return MakeCurve(
+            type=self.type,
+            control_points=tuple(
+                (
+                    (
+                        round(point[0], precision)
+                        if precision > 0
+                        else int(round(point[0], precision))
+                    ),
+                    (
+                        round(point[1], precision)
+                        if precision > 0
+                        else int(round(point[1], precision))
+                    ),
+                )
+                for point in self.control_points
+            ),
+        )
 
 
 class MoveCurve(BaseModel):
@@ -157,6 +227,40 @@ class MoveCurve(BaseModel):
             },
         }
 
+    def round(self, precision: int = 0):
+        return MoveCurve(
+            type=self.type,
+            control_points=tuple(
+                (
+                    (
+                        round(point[0], precision)
+                        if precision > 0
+                        else int(round(point[0], precision))
+                    ),
+                    (
+                        round(point[1], precision)
+                        if precision > 0
+                        else int(round(point[1], precision))
+                    ),
+                )
+                for point in self.control_points
+            ),
+            offset=(
+                (
+                    (
+                        round(self.offset[0], precision)
+                        if precision > 0
+                        else int(round(self.offset[0], precision))
+                    ),
+                    (
+                        round(self.offset[1], precision)
+                        if precision > 0
+                        else int(round(self.offset[1], precision))
+                    ),
+                )
+            ),
+        )
+
 
 class RemoveCurve(BaseModel):
     """
@@ -185,6 +289,26 @@ class RemoveCurve(BaseModel):
             "arguments": {"type": self.type, "control_points": self.control_points},
         }
 
+    def round(self, precision: int = 0):
+        return RemoveCurve(
+            type=self.type,
+            control_points=tuple(
+                (
+                    (
+                        round(point[0], precision)
+                        if precision > 0
+                        else int(round(point[0], precision))
+                    ),
+                    (
+                        round(point[1], precision)
+                        if precision > 0
+                        else int(round(point[1], precision))
+                    ),
+                )
+                for point in self.control_points
+            ),
+        )
+
 
 Edit = Annotated[
     Union[DeletePoint, MovePoint, MakeCurve, MoveCurve, RemoveCurve],
@@ -201,3 +325,9 @@ class EditExecution(Execution):
         for edit in edits:
             edited_design = edit(edited_design)
         return cls(design=edited_design, edits=edits)
+
+    def round(self, precision: int = 0):
+        return EditExecution(
+            design=self.design.round(precision),
+            edits=tuple(edit.round(precision) for edit in self.edits),
+        )

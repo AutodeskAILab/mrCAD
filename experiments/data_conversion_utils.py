@@ -2,7 +2,7 @@ from typing import List
 import numpy as np
 from mrcad.render_utils import RenderConfig
 from mrcad.design import Design, Arc, Circle, Line, Curve
-from agents.editing_actions import (
+from mrcad.editing_actions import (
     DeletePoint,
     MovePoint,
     MakeCurve,
