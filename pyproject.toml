@@ -34,7 +34,6 @@ dependencies = [
 	"pytest-datafiles",
 	"PyYAML",
 	"scipy>=1.13.1",
-	"sketchgraphs==0.1",
 	"tqdm",
 	"typeguard",
 	"typing_extensions"
