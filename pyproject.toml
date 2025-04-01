@@ -33,6 +33,7 @@ dependencies = [
 	"pytest",
 	"pytest-datafiles",
 	"PyYAML",
+	"scikit-learn>=1.5.0",
 	"scipy>=1.13.1",
 	"tqdm",
 	"typeguard",
