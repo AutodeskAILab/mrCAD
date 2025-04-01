@@ -140,6 +140,8 @@ def main(
                 top_p=top_p,
             )
 
-    dataset = load_dataset("saujasv/mrcad", dataset_config, trust_remote_code=True)
+    dataset = load_dataset(
+        "saujasv/mrcad", dataset_config, split=eval_split, trust_remote_code=True
+    )
 
-    run(maker, dataset[eval_split], save_path, agent_output)
+    run(maker, dataset, save_path, agent_output)
