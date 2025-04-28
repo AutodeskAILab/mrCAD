@@ -1,9 +1,10 @@
-from copy import deepcopy
+from typing import List, Tuple
 from mrcad.agents import AbstractDesignerAgent, AbstractMakerAgent
 from mrcad.env import mrCADEnvironment, State
 from mrcad.design import Design
+from mrcad.action import Action
 from mrcad.env_utils import Role
-from mrcad.rewards import chamfer_reward
+from mrcad.rewards import design_distance
 
 
 class SynchronousCoordinator:
@@ -12,7 +13,10 @@ class SynchronousCoordinator:
     ):
         self.env = mrCADEnvironment(
             State(target=target),
-            {Role.DESIGNER: lambda x: None, Role.MAKER: lambda x: None},
+            {
+                Role.DESIGNER: lambda x: None,
+                Role.MAKER: design_distance,
+            },
         )
         self.designer = designer
         self.maker = maker
@@ -36,3 +40,29 @@ class SynchronousCoordinator:
                 break
 
         return state, rewards
+
+
+class MakerEvaluationCoordinator:
+    def __init__(
+        self,
+        target: Design,
+        maker: AbstractMakerAgent,
+        conversation_history: List[Tuple[Design, Action]],
+    ):
+        self.maker = maker
+        self.target = target
+        self.conversation_history = conversation_history
+
+    def play(self):
+        actions = list()
+        turn_idx = 0
+        while turn_idx < len(self.conversation_history):
+            if self.conversation_history[turn_idx][1].role == Role.DESIGNER:
+                turn_idx += 1
+                continue
+
+            action = self.maker.act(self.conversation_history[:turn_idx])
+            actions.append(action)
+            turn_idx += 1
+
+        return actions

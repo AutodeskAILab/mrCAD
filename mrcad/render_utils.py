@@ -1,52 +1,6 @@
 from typing import Union, Tuple
 import numpy as np
-import math
 from dataclasses import dataclass
-from pathlib import Path
-import matplotlib.pyplot as plt
-
-
-def find_circle(x1, y1, x2, y2, x3, y3):
-    x12 = x1 - x2
-    x13 = x1 - x3
-
-    y12 = y1 - y2
-    y13 = y1 - y3
-
-    y31 = y3 - y1
-    y21 = y2 - y1
-
-    x31 = x3 - x1
-    x21 = x2 - x1
-
-    # x1^2 - x3^2
-    sx13 = x1**2 - x3**2
-
-    # y1^2 - y3^2
-    sy13 = y1**2 - y3**2
-
-    sx21 = x2**2 - x1**2
-    sy21 = y2**2 - y1**2
-
-    f = (sx13 * x12 + sy13 * x12 + sx21 * x13 + sy21 * x13) / (
-        2 * (y31 * x12 - y21 * x13)
-    )
-    g = (sx13 * y12 + sy13 * y12 + sx21 * y13 + sy21 * y13) / (
-        2 * (x31 * y12 - x21 * y13)
-    )
-
-    c = -(x1**2) - y1**2 - 2 * g * x1 - 2 * f * y1
-
-    # Equation of circle: x^2 + y^2 + 2*g*x + 2*f*y + c = 0
-    # where the center is (h = -g, k = -f) and radius r
-    # as r^2 = h^2 + k^2 - c
-    h = -g
-    k = -f
-    sqr_of_r = h**2 + k**2 - c
-
-    # r is the radius
-    r = math.sqrt(sqr_of_r)
-    return (h, k), r
 
 
 class Collinear(Exception):
@@ -60,7 +14,7 @@ class OutOfBoundsError(Exception):
 @dataclass
 class RenderConfig:
     grid_size: int = 40
-    image_size: int = 1280
+    image_size: int = 400
     line_thickness: int = 4
     drawing_thickness: int = 4
     design_color: Union[Tuple[float, float, float], None] = (0, 0, 0)
