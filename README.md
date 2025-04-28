@@ -4,7 +4,7 @@
 
 ```
 conda create -n mrcad-env python=3.11
-pip install git+https://github.com/saujasv/mrcad-env.git@faa0e981add2292b6c054508f39719d24ddc09e0
+pip install git+https://github.com/AutodeskAILab/mrCAD.git
 ```
 
 To run training or evaluation experiments, you would need additional dependencies installed.
@@ -21,7 +21,7 @@ Once you have installed the `mrcad` package, you can load the dataset using [Hug
 ```python
 from datasets import load_dataset
 
-mrcad_dataset = load_dataset("saujasv/mrcad", trust_remote_code=True)
+mrcad_dataset = load_dataset("mrcad-project/mrcad", trust_remote_code=True)
 ```
 
 > [!NOTE]
