@@ -24,7 +24,7 @@ The *Designer* was shown a target design and sent instructions to the *Maker*.
 The *Maker* couldn't see the target, so followed the instructions to creating and edit their CAD to match the target.
 
 The mrCAD dataset consists of:
-- **15,163 instructions and corresponding executions in a 2D CAD environment**
+- **15,163 instructions and corresponding executions**,
 - across **6,082 unique communication games**,
 - performed by **1,092 pairs of participants**,
 - and includes **3,166 unique CADs**.
