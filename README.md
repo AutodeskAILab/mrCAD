@@ -13,7 +13,10 @@ The mrCAD project consists of:
 
 Download the dataset [here](data/mrcad_dataset.csv.zip).
 
-![Image](img/task.png)
+<div style="text-align: center;">
+  <img src="img/task.png" alt="mrcad task" width="50%" />
+</div>
+
 
 The mrCAD dataset was collected by pairing participants in an online communication game.
 Over multiple rounds, two players, the *Designer* and the *Maker*, worked together to recreated target designs.
@@ -39,7 +42,10 @@ We partition our dataset into three distinct subsets:
 Instructions could include drawing, text, or a combination of both.
 The primary data collection goal was to collect examples of *multimodal refinement instructions*, that is, instructions for editing and existing CAD (i.e. round number > 1) that included both text and drawing.
 
-![Image](img/example_instructions.png)
+<div style="text-align: center;">
+  <img src="img/example_instructions.png" alt="example instructions" width="70%" />
+</div>
+
 
 These include a range of linguistic phenomena such as reference and grounding, as well as extra-linguistic phenomena such as arrows, depiction, and dimensions.
 
