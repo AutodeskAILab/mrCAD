@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mrcad"
+version = "0.0.1"
+dependencies = [
+	"annotated-types",	
+	"astor",
+	"asttokens",
+	"cachetools",
+	"charset-normalizer",
+	"datasets>=3.3.2",
+	"docstring_parser",
+	"eval_type_backport",
+	"exceptiongroup",
+	"json5",
+	"jsonlines",
+	"jsonschema",
+	"jsonschema-specifications",
+	"numpy<=1.26.4",
+	"opencv-python>=4.10.0.84",
+	"opencv-python-headless>=4.11.0.86",
+	"pandas>=2.2.2",
+	"parso",
+	"partial-json-parser",
+	"pillow==10.3.0",
+	"pyarrow",
+	"pydantic>=2.10.6",
+	"pydantic_core>=2.27.2",
+	"pyproject_hooks",
+	"pytest",
+	"pytest-datafiles",
+	"PyYAML",
+	"scikit-learn>=1.5.0",
+	"scipy>=1.13.1",
+	"tqdm",
+	"typeguard",
+	"typing_extensions"
+]
+
+[tool.setuptools.package-dir]
+mrcad = "mrcad"
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests"
+]
