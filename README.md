@@ -4,7 +4,7 @@
 Welcome to the mrCAD project page.
 
 The mrCAD project consists of:
-- A [paper](arxiv).
+- A [paper](https://arxiv.org/abs/2504.20294).
 - A [dataset](data/mrcad_dataset.csv.zip) of multimodal refinement instructions of 2D Computer-Aided Designs (CADs).
 - An [environment]() to benchmark your models on our baseline.
 - Preliminary [analyses]() of the dataset.
@@ -51,3 +51,16 @@ These include a range of linguistic phenomena such as reference and grounding, a
 
 
 ## Environment
+
+## Cite
+```
+@misc{mccarthy2025mrcadmultimodalrefinementcomputeraided,
+  title     = {mrCAD: Multimodal Refinement of Computer-aided Designs},
+  author    = {William P. McCarthy and Saujas Vaduguru and Karl D. D. Willis and Justin Matejka and Judith E. Fan and Daniel Fried and Yewen Pu},
+  year      = {2025},
+  eprint    = {2504.20294},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.AI},
+  url       = {https://arxiv.org/abs/2504.20294}
+}
+```
